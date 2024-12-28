@@ -2,20 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  body {
+    @apply bg-dark text-light;
+    direction: rtl;
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-l from-primary to-accent;
+  }
+  
+  .verse {
+    @apply p-4 rounded-lg bg-dark-card/50 hover:bg-dark-card transition-colors cursor-pointer;
+  }
+
+  .verse-text {
+    @apply text-xl leading-loose font-arabic;
+  }
+
+  .verse-number {
+    @apply inline-flex items-center justify-center w-8 h-8 text-sm rounded-full bg-primary/10 text-primary ml-2;
+  }
+}
+
+@keyframes shine {
+  to {
+    background-position: 200% center;
+  }
 }
