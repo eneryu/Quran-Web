@@ -7,13 +7,13 @@ import { TafsirDialog } from '@/components/TafsirDialog'
 import { getSurah, getReciters, getRecitation, getTafsir } from '@/lib/api'
 import type { Verse, Reciter } from '@/lib/api'
 
-interface SurahPageProps {
+interface PageProps {
   params: {
     id: string
   }
 }
 
-export default function SurahPage({ params }: SurahPageProps) {
+export default function Page({ params }: PageProps) {
   const [verses, setVerses] = React.useState<Verse[]>([])
   const [reciters, setReciters] = React.useState<Reciter[]>([])
   const [selectedReciter, setSelectedReciter] = React.useState('')
