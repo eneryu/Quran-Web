@@ -5,16 +5,18 @@ import { Header } from '@/components/Header'
 import { ReciterSelect } from '@/components/ReciterSelect'
 import { TafsirDialog } from '@/components/TafsirDialog'
 import { getSurah, getReciters, getRecitation, getTafsir } from '@/lib/api'
-import type { Verse, Reciter } from '@/lib/api'
+import type { Verse, Reciter, Surah } from '@/lib/api'
 
-interface PageProps {
-  params: {
+interface SurahPageProps {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
-export default function Page({ params }: PageProps) {
+export default function SurahPage({ params }: SurahPageProps) {
+  const { id } = React.use(params)
   const [verses, setVerses] = React.useState<Verse[]>([])
+  const [surah, setSurah] = React.useState<Surah | null>(null)
   const [reciters, setReciters] = React.useState<Reciter[]>([])
   const [selectedReciter, setSelectedReciter] = React.useState('')
   const [audioUrl, setAudioUrl] = React.useState('')
@@ -24,27 +26,28 @@ export default function Page({ params }: PageProps) {
 
   React.useEffect(() => {
     Promise.all([
-      getSurah(parseInt(params.id)),
+      getSurah(parseInt(id)),
       getReciters()
     ]).then(([surahData, recitersData]) => {
       setVerses(surahData.verses)
+      setSurah(surahData)
       setReciters(recitersData)
       if (recitersData.length > 0) {
         setSelectedReciter(recitersData[0].identifier)
       }
     })
-  }, [params.id])
+  }, [id])
 
   React.useEffect(() => {
     if (selectedReciter) {
-      getRecitation(selectedReciter, parseInt(params.id))
+      getRecitation(selectedReciter, parseInt(id))
         .then(setAudioUrl)
     }
-  }, [selectedReciter, params.id])
+  }, [selectedReciter, id])
 
   const handleVerseClick = async (verse: Verse) => {
     setSelectedVerse(verse)
-    const tafsirText = await getTafsir(parseInt(params.id), verse.numberInSurah)
+    const tafsirText = await getTafsir(parseInt(id), verse.numberInSurah)
     setTafsir(tafsirText)
   }
 
@@ -53,7 +56,7 @@ export default function Page({ params }: PageProps) {
       <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl font-bold">سورة {verses[0]?.surah?.name}</h2>
+          <h2 className="text-2xl font-bold">سورة {surah?.name}</h2>
           <div className="flex items-center gap-4">
             <ReciterSelect
               reciters={reciters}

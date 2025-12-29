@@ -45,7 +45,7 @@ export async function getSurahs() {
 
 export async function getSurah(number: number) {
   const response = await quranApi.get(`/surah/${number}`)
-  return response.data.data as { verses: Verse[] }
+  return response.data.data as Surah & { verses: Verse[] }
 }
 
 export async function getReciters() {
