@@ -12,28 +12,35 @@ interface ReciterSelectProps {
 }
 
 export function ReciterSelect({ reciters, selectedReciter, onReciterChange }: ReciterSelectProps) {
+  const selectedReciterName = reciters?.find(r => r.identifier === selectedReciter)?.name || 'اختر القارئ'
+
   return (
     <Select.Root value={selectedReciter} onValueChange={onReciterChange}>
-      <Select.Trigger className="inline-flex items-center justify-between gap-2 px-4 py-2 rounded-lg bg-dark-card text-white border border-white/10 hover:border-white/20 transition-colors">
-        <Select.Value />
+      <Select.Trigger className="inline-flex items-center justify-between gap-4 px-6 py-3 rounded-full glass hover:bg-white/5 text-white border border-white/10 hover:border-primary/50 transition-all duration-300 min-w-[200px] outline-none group focus:ring-2 focus:ring-primary/20">
+        <Select.Value aria-label={selectedReciter}>
+          {selectedReciterName}
+        </Select.Value>
         <Select.Icon>
-          <IconChevronDown className="w-4 h-4" />
+          <IconChevronDown className="w-5 h-5 text-primary group-hover:translate-y-0.5 transition-transform" />
         </Select.Icon>
       </Select.Trigger>
 
       <Select.Portal>
-        <Select.Content className="overflow-hidden bg-dark-card rounded-lg border border-white/10">
+        <Select.Content position="popper" sideOffset={8} className="overflow-hidden bg-dark-card/90 backdrop-blur-xl rounded-2xl border border-white/10 shadow-premium min-w-[240px] animate-fade-in">
           <Select.ScrollUpButton />
-          <Select.Viewport>
-            {reciters.map((reciter) => (
+          <Select.Viewport className="p-2">
+            {reciters?.map((reciter) => (
               <Select.Item
                 key={reciter.identifier}
                 value={reciter.identifier}
-                className="relative flex items-center px-8 py-2 text-sm text-white hover:bg-white/5 cursor-pointer outline-none"
+                className="relative flex items-center px-4 py-3 text-sm text-gray-300 rounded-xl hover:bg-primary/10 hover:text-primary cursor-pointer outline-none transition-colors data-[state=checked]:bg-primary/20 data-[state=checked]:text-primary"
               >
                 <Select.ItemText>{reciter.name}</Select.ItemText>
               </Select.Item>
             ))}
+            {(!reciters || reciters.length === 0) && (
+              <div className="p-4 text-center text-sm text-gray-500">جاري التحميل...</div>
+            )}
           </Select.Viewport>
           <Select.ScrollDownButton />
         </Select.Content>

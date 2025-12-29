@@ -4,31 +4,52 @@
 
 @layer base {
   body {
-    @apply bg-dark text-light;
+    @apply bg-dark text-light min-h-screen selection:bg-primary selection:text-white antialiased;
     direction: rtl;
+    background-image:
+      radial-gradient(circle at 0% 0%, rgba(16, 185, 129, 0.05) 0%, transparent 50%),
+      radial-gradient(circle at 100% 100%, rgba(251, 191, 36, 0.05) 0%, transparent 50%);
   }
 }
 
 @layer components {
-  .gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-l from-primary to-accent;
+  .glass {
+    @apply bg-dark-card/40 backdrop-blur-xl border border-white/5 shadow-2xl;
   }
-  
+
+  .premium-card {
+    @apply glass rounded-2xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-premium;
+  }
+
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent-dark font-bold;
+  }
+
   .verse {
-    @apply p-4 rounded-lg bg-dark-card/50 hover:bg-dark-card transition-colors cursor-pointer;
+    @apply p-8 rounded-2xl glass hover:bg-dark-card/60 transition-all duration-300 cursor-pointer border-r-4 border-transparent hover:border-primary;
   }
 
   .verse-text {
-    @apply text-xl leading-loose font-arabic;
+    @apply text-3xl leading-[2.5] font-arabic text-light/90 group-hover:text-light transition-colors;
   }
 
   .verse-number {
-    @apply inline-flex items-center justify-center w-8 h-8 text-sm rounded-full bg-primary/10 text-primary ml-2;
+    @apply inline-flex items-center justify-center w-10 h-10 text-sm font-bold rounded-full bg-primary/10 text-primary border border-primary/20 ml-4 group-hover:bg-primary group-hover:text-white transition-all duration-300;
+  }
+
+  .btn-primary {
+    @apply px-6 py-2 rounded-full bg-primary hover:bg-primary-dark text-white font-semibold transition-all duration-300 shadow-lg shadow-primary/20 hover:shadow-primary/40 active:scale-95;
   }
 }
 
-@keyframes shine {
-  to {
-    background-position: 200% center;
-  }
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-dark;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-white/10 rounded-full border-4 border-solid border-dark hover:bg-white/20 transition-colors;
 }
