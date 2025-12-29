@@ -70,39 +70,39 @@ export async function getSurahs(): Promise<Surah[]> {
   }
 }
 
-export async function getFullSurahData(number: number, reciterId: number = 7) {
+export async function getFullSurahData(number: number, reciterId: string = 'ar.alafasy') {
   try {
-    // 1. Fetch Uthmani Text
-    const textRes = await axios.get(`${QURAN_COM_API}/quran/verses/uthmani?chapter_number=${number}`);
+    // Use alquran.cloud - it returns 'ayahs' not 'verses'
+    const ALQURAN_API = 'https://api.alquran.cloud/v1';
 
-    // 2. Fetch Audio (Mishary Alafasy is 7 by default)
-    // api.quran.com v4 recitations: /recitations/{id}/by_chapter/{chapter_number}
-    const audioRes = await axios.get(`${QURAN_COM_API}/recitations/${reciterId}/by_chapter/${number}`);
+    const [textRes, audioRes] = await Promise.all([
+      axios.get(`${ALQURAN_API}/surah/${number}/quran-uthmani`),
+      axios.get(`${ALQURAN_API}/surah/${number}/${reciterId}`)
+    ]);
 
-    // 3. Fetch Chapter Metadata
-    const metaRes = await axios.get(`${QURAN_COM_API}/chapters/${number}?language=ar`);
-    const c = metaRes.data.chapter;
+    const textData = textRes.data.data;
+    const audioData = audioRes.data.data;
 
-    const verses = textRes.data.verses.map((v: any, i: number) => ({
-      number: v.id,
-      text: v.text_uthmani,
-      numberInSurah: i + 1,
-      verse_key: v.verse_key,
-      audio: audioRes.data.audio_files[i]?.url
-        ? (audioRes.data.audio_files[i].url.startsWith('http') ? audioRes.data.audio_files[i].url : `https://audio.qurancdn.com/${audioRes.data.audio_files[i].url}`)
-        : ''
-    }));
+    // alquran.cloud uses 'ayahs' NOT 'verses'
+    if (!textData || !textData.ayahs) {
+      throw new Error('Arabic text ayahs missing from API response');
+    }
 
     return {
       metadata: {
-        number: c.id,
-        name: c.name_arabic,
-        englishName: c.name_complex,
-        englishNameTranslation: c.translated_name.name,
-        numberOfAyahs: c.verses_count,
-        revelationType: c.revelation_place === 'makkah' ? 'Meccan' : 'Medinan'
+        number: textData.number,
+        name: textData.name,
+        englishName: textData.englishName,
+        englishNameTranslation: textData.englishNameTranslation,
+        numberOfAyahs: textData.numberOfAyahs,
+        revelationType: textData.revelationType
       },
-      verses
+      verses: textData.ayahs.map((v: any, i: number) => ({
+        number: v.number,
+        text: v.text,
+        numberInSurah: v.numberInSurah,
+        audio: audioData?.ayahs?.[i]?.audio || ''
+      }))
     };
   } catch (error) {
     console.error('Error fetching full surah data:', error);
@@ -111,17 +111,16 @@ export async function getFullSurahData(number: number, reciterId: number = 7) {
 }
 
 export async function getReciters(): Promise<Reciter[]> {
-  // Common Arabic reciters from Quran.com
+  // Common Arabic reciters from alquran.cloud (ar.* format)
   return [
-    { identifier: '7', name: 'مشاري راشد العفاسي' },
-    { identifier: '1', name: 'عبد الباسط عبد الصمد' },
-    { identifier: '3', name: 'عبد الرحمن السديس' },
-    { identifier: '6', name: 'ماهر المعيقلي' },
-    { identifier: '5', name: 'محمود خليل الحصري' },
-    { identifier: '4', name: 'محمد صديق المنشاوي' },
-    { identifier: '2', name: 'أبو بكر الشاطري' },
-    { identifier: '10', name: 'سعد الغامدي' },
-    { identifier: '11', name: 'سعود الشريم' }
+    { identifier: 'ar.alafasy', name: 'مشاري راشد العفاسي' },
+    { identifier: 'ar.abdulsamad', name: 'عبد الباسط عبد الصمد' },
+    { identifier: 'ar.abdurrahmaansudais', name: 'عبد الرحمن السديس' },
+    { identifier: 'ar.mahermuaiqly', name: 'ماهر المعيقلي' },
+    { identifier: 'ar.husary', name: 'محمود خليل الحصري' },
+    { identifier: 'ar.minshawi', name: 'محمد صديق المنشاوي' },
+    { identifier: 'ar.shaatree', name: 'أبو بكر الشاطري' },
+    { identifier: 'ar.ghamadi', name: 'سعد الغامدي' }
   ];
 }
 

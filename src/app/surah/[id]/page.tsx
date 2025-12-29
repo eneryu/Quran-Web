@@ -18,7 +18,7 @@ export default function SurahPage({ params }: SurahPageProps) {
   const [verses, setVerses] = React.useState<Verse[]>([])
   const [surah, setSurah] = React.useState<Surah | null>(null)
   const [reciters, setReciters] = React.useState<Reciter[]>([])
-  const [selectedReciter, setSelectedReciter] = React.useState('7') // Alafasy defaults to 7
+  const [selectedReciter, setSelectedReciter] = React.useState('ar.alafasy') // Alafasy
   const [selectedVerse, setSelectedVerse] = React.useState<Verse | null>(null)
   const [tafsirs, setTafsirs] = React.useState<Tafsir[]>([])
   const [selectedTafsirIdx, setSelectedTafsirIdx] = React.useState(0)
@@ -37,7 +37,7 @@ export default function SurahPage({ params }: SurahPageProps) {
         if (isMounted) setReciters(recitersList)
 
         // Load Surah with default reciter
-        const data = await getFullSurahData(parseInt(id), parseInt(selectedReciter))
+        const data = await getFullSurahData(parseInt(id), selectedReciter)
         if (isMounted) {
           setSurah(data.metadata)
           setVerses(data.verses)
@@ -59,7 +59,7 @@ export default function SurahPage({ params }: SurahPageProps) {
   // Reload verses ONLY when reciter changes
   React.useEffect(() => {
     if (!isLoading && surah && selectedReciter) {
-      getFullSurahData(parseInt(id), parseInt(selectedReciter)).then((data) => {
+      getFullSurahData(parseInt(id), selectedReciter).then((data) => {
         setVerses(data.verses)
       }).catch(err => {
         console.error("Failed to change reciter:", err)
@@ -193,8 +193,8 @@ export default function SurahPage({ params }: SurahPageProps) {
                         key={idx}
                         onClick={() => setSelectedTafsirIdx(idx)}
                         className={`px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 font-arabic ${selectedTafsirIdx === idx
-                            ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                            : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                          ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                          : 'bg-white/5 text-gray-400 hover:bg-white/10'
                           }`}
                       >
                         <IconUser className="w-4 h-4" />
