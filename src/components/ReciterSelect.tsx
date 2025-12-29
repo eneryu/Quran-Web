@@ -16,30 +16,30 @@ export function ReciterSelect({ reciters, selectedReciter, onReciterChange }: Re
 
   return (
     <Select.Root value={selectedReciter} onValueChange={onReciterChange}>
-      <Select.Trigger className="flex items-center gap-3 px-6 py-3 rounded-2xl glass border-primary/20 hover:border-primary/40 focus:outline-none transition-all duration-300 group shadow-lg min-w-[240px]">
+      <Select.Trigger className="flex flex-row-reverse items-center gap-3 px-6 py-3 rounded-2xl glass border-primary/20 hover:border-primary/40 focus:outline-none transition-all duration-300 group shadow-lg min-w-[240px]" dir="rtl">
         <IconMicrophone className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
-        <Select.Value>
-          <span className="text-gray-200 font-medium">{currentReciter?.name || 'اختر القارئ'}</span>
+        <Select.Value className="text-right flex-1">
+          <span className="text-gray-200 font-bold font-arabic">{currentReciter?.name || 'اختر القارئ'}</span>
         </Select.Value>
-        <Select.Icon className="ml-auto">
+        <Select.Icon className="mr-auto">
           <IconChevronDown className="w-4 h-4 text-gray-500" />
         </Select.Icon>
       </Select.Trigger>
 
       <Select.Portal>
-        <Select.Content className="z-[150] overflow-hidden bg-dark-card/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl animate-fade-in">
+        <Select.Content className="z-[150] overflow-hidden bg-dark-card/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl animate-fade-in" dir="rtl">
           <Select.Viewport className="p-2">
             {reciters?.map((reciter) => (
               <Select.Item
                 key={reciter.id}
                 value={reciter.id}
-                className="relative flex items-center px-8 py-3 text-sm text-gray-300 hover:text-white hover:bg-primary/20 rounded-xl cursor-pointer outline-none transition-colors data-[selected]:bg-primary data-[selected]:text-white mb-1 last:mb-0"
+                className="relative flex flex-row-reverse items-center justify-between px-8 py-4 text-sm text-gray-300 hover:text-white hover:bg-primary/20 rounded-xl cursor-pointer outline-none transition-colors data-[selected]:bg-primary data-[selected]:text-white mb-1 last:mb-0 font-arabic font-bold"
               >
                 <Select.ItemText>{reciter.name}</Select.ItemText>
               </Select.Item>
             ))}
             {(!reciters || reciters.length === 0) && (
-              <div className="px-8 py-3 text-sm text-gray-500 italic">جاري تحميل القراء...</div>
+              <div className="px-8 py-3 text-sm text-gray-500 italic text-right font-arabic">جاري تحميل القراء...</div>
             )}
           </Select.Viewport>
         </Select.Content>

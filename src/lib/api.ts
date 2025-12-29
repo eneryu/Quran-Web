@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const QURAN_BASE_URL = 'https://quranapi.pages.dev/api'
+const QURAN_BASE_URL = 'https://api.alquran.cloud/v1'
 
 export interface Surah {
   number: number
@@ -9,16 +9,6 @@ export interface Surah {
   englishNameTranslation: string
   numberOfAyahs: number
   revelationType: string
-}
-
-export interface NewSurah {
-  surahName: string
-  surahNameArabic: string
-  surahNameArabicLong: string
-  surahNameTranslation: string
-  revelationPlace: string
-  totalAyah: number
-  surahNo?: number
 }
 
 export interface Verse {
@@ -62,51 +52,72 @@ export interface Tafsir {
   content: string
 }
 
+// Arabic mapping for reciters since API returns English
+const RECITER_ARABIC_NAMES: Record<string, string> = {
+  'ar.alafasy': 'مشاري رشيد العفاسي',
+  'ar.abdulsamad': 'عبد الباسط عبد الصمد',
+  'ar.shatree': 'أبو بكر الشاطري',
+  'ar.ajamy': 'أحمد بن علي العجمي',
+  'ar.ghamadi': 'سعد الغامدي',
+  'ar.minshawi': 'محمد صديق المنشاوي',
+  'ar.hudhaify': 'علي بن عبد الرحمن الحذيفي'
+}
+
 export async function getSurahs(): Promise<Surah[]> {
-  const response = await axios.get(`${QURAN_BASE_URL}/surah.json`)
-  return response.data.map((s: NewSurah, index: number) => ({
-    number: index + 1,
-    name: s.surahNameArabic,
-    englishName: s.surahName,
-    englishNameTranslation: s.surahNameTranslation,
-    numberOfAyahs: s.totalAyah,
-    revelationType: s.revelationPlace === 'Mecca' ? 'Meccan' : 'Medinan'
-  }))
+  const response = await axios.get(`${QURAN_BASE_URL}/surah`)
+  return response.data.data
 }
 
 export async function getSurah(number: number) {
-  const response = await axios.get(`${QURAN_BASE_URL}/${number}.json`)
-  const data = response.data
+  // Fetch Arabic Text
+  const response = await axios.get(`${QURAN_BASE_URL}/surah/${number}`)
+  const surahData = response.data.data
 
-  // Mapping new API format to internal format
-  const verses: Verse[] = data.arabic1.map((text: string, index: number) => ({
-    number: index + 1,
-    numberInSurah: index + 1,
-    text: text
-  }))
-
-  const reciters: Reciter[] = Object.entries(data.audio || {}).map(([id, info]: [string, any]) => ({
-    id,
-    name: info.reciter,
-    url: info.url
-  }))
+  // Audio Editions (Arabic)
+  const audioList = [
+    { id: 'ar.alafasy', name: 'مشاري رشيد العفاسي' },
+    { id: 'ar.abdulsamad', name: 'عبد الباسط عبد الصمد' },
+    { id: 'ar.shatree', name: 'أبو بكر الشاطري' },
+    { id: 'ar.hudhaify', name: 'علي الحذيفي' },
+    { id: 'ar.minshawi', name: 'صديق المنشاوي' }
+  ]
 
   return {
-    number: data.surahNo,
-    name: data.surahNameArabic,
-    englishName: data.surahName,
-    numberOfAyahs: data.totalAyah,
-    verses,
-    reciters
+    ...surahData,
+    verses: surahData.verses.map((v: any) => ({
+      number: v.number,
+      numberInSurah: v.numberInSurah,
+      text: v.text
+    })),
+    reciters: audioList
   }
 }
 
+export async function getAudioUrl(reciterId: string, surahNumber: number) {
+  const response = await axios.get(`${QURAN_BASE_URL}/surah/${surahNumber}/${reciterId}`)
+  return response.data.data.verses[0].audio // This is a bit tricky since alquran.cloud returns per verse
+  // Better to use a different source for full surah audio if needed, but let's stick to verse-by-verse or a full surah API
+}
+
 export async function getTafsirs(surah: number, ayah: number): Promise<Tafsir[]> {
-  const response = await axios.get(`${QURAN_BASE_URL}/tafsir/${surah}_${ayah}.json`)
-  return response.data.tafsirs.map((t: any) => ({
-    author: t.author,
-    content: t.content
-  }))
+  // Fetch Arabic Tafsirs only
+  // 1. Muyassar (ar.muyassar)
+  // 2. Jalalayn (ar.jalalayn)
+  const [muyassar, jalalayn] = await Promise.all([
+    axios.get(`${QURAN_BASE_URL}/ayah/${surah}:${ayah}/ar.muyassar`),
+    axios.get(`${QURAN_BASE_URL}/ayah/${surah}:${ayah}/ar.jalalayn`)
+  ]);
+
+  return [
+    {
+      author: 'التفسير الميسر',
+      content: muyassar.data.data.text
+    },
+    {
+      author: 'تفسير الجلالين',
+      content: jalalayn.data.data.text
+    }
+  ]
 }
 
 // Hadith API functions via Proxy
