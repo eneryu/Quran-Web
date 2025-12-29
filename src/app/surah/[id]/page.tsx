@@ -4,8 +4,8 @@ import React from 'react'
 import { Header } from '@/components/Header'
 import { ReciterSelect } from '@/components/ReciterSelect'
 import { TafsirDialog } from '@/components/TafsirDialog'
-import { getSurah, getReciters, getRecitation, getTafsir } from '@/lib/api'
-import type { Verse, Reciter, Surah } from '@/lib/api'
+import { getSurah, getTafsirs } from '@/lib/api'
+import type { Verse, Reciter, Surah, Tafsir } from '@/lib/api'
 
 interface SurahPageProps {
   params: Promise<{
@@ -16,39 +16,39 @@ interface SurahPageProps {
 export default function SurahPage({ params }: SurahPageProps) {
   const { id } = React.use(params)
   const [verses, setVerses] = React.useState<Verse[]>([])
-  const [surah, setSurah] = React.useState<Surah | null>(null)
+  const [surah, setSurah] = React.useState<any>(null)
   const [reciters, setReciters] = React.useState<Reciter[]>([])
   const [selectedReciter, setSelectedReciter] = React.useState('')
   const [audioUrl, setAudioUrl] = React.useState('')
   const [selectedVerse, setSelectedVerse] = React.useState<Verse | null>(null)
-  const [tafsir, setTafsir] = React.useState('')
+  const [tafsirs, setTafsirs] = React.useState<Tafsir[]>([])
   const audioRef = React.useRef<HTMLAudioElement>(null)
 
   React.useEffect(() => {
-    Promise.all([
-      getSurah(parseInt(id)),
-      getReciters()
-    ]).then(([surahData, recitersData]) => {
+    getSurah(parseInt(id)).then((surahData) => {
       setVerses(surahData.verses)
       setSurah(surahData)
-      setReciters(recitersData)
-      if (recitersData.length > 0) {
-        setSelectedReciter(recitersData[0].identifier)
+      setReciters(surahData.reciters)
+      if (surahData.reciters.length > 0) {
+        setSelectedReciter(surahData.reciters[0].id)
       }
     })
   }, [id])
 
   React.useEffect(() => {
-    if (selectedReciter) {
-      getRecitation(selectedReciter, parseInt(id))
-        .then(setAudioUrl)
+    if (selectedReciter && reciters.length > 0) {
+      const reciter = reciters.find(r => r.id === selectedReciter)
+      if (reciter?.url) {
+        setAudioUrl(reciter.url)
+      }
     }
-  }, [selectedReciter, id])
+  }, [selectedReciter, reciters])
 
   const handleVerseClick = async (verse: Verse) => {
     setSelectedVerse(verse)
-    const tafsirText = await getTafsir(parseInt(id), verse.numberInSurah)
-    setTafsir(tafsirText)
+    setTafsirs([]) // Clear previous
+    const data = await getTafsirs(parseInt(id), verse.numberInSurah)
+    setTafsirs(data)
   }
 
   return (
@@ -69,7 +69,13 @@ export default function SurahPage({ params }: SurahPageProps) {
             />
             {audioUrl && (
               <div className="flex items-center bg-dark/40 rounded-full px-4 py-2 border border-white/5 backdrop-blur-md">
-                <audio ref={audioRef} src={audioUrl} controls className="h-8 audio-player" />
+                <audio
+                  ref={audioRef}
+                  key={audioUrl}
+                  src={audioUrl}
+                  controls
+                  className="h-8 audio-player"
+                />
               </div>
             )}
           </div>
@@ -93,11 +99,10 @@ export default function SurahPage({ params }: SurahPageProps) {
             </div>
           ))}
           {(!verses || verses.length === 0) && (
-            <div className="text-center py-20 bg-dark-card/20 rounded-3xl border border-white/5">
-              <div className="animate-pulse flex flex-col items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-primary/20"></div>
-                <div className="h-4 w-48 bg-white/5 rounded"></div>
-              </div>
+            <div className="grid gap-6">
+              {Array(10).fill(0).map((_, i) => (
+                <div key={i} className="h-32 glass rounded-2xl animate-pulse"></div>
+              ))}
             </div>
           )}
         </div>
@@ -107,10 +112,10 @@ export default function SurahPage({ params }: SurahPageProps) {
             isOpen={!!selectedVerse}
             onClose={() => setSelectedVerse(null)}
             verseText={selectedVerse.text}
-            tafsir={tafsir}
+            tafsirs={tafsirs}
           />
         )}
       </main>
     </>
   )
-} 
+}

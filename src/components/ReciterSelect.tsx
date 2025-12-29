@@ -2,49 +2,48 @@
 
 import React from 'react'
 import * as Select from '@radix-ui/react-select'
-import { IconChevronDown } from '@tabler/icons-react'
+import { IconChevronDown, IconMicrophone } from '@tabler/icons-react'
 import type { Reciter } from '@/lib/api'
 
 interface ReciterSelectProps {
   reciters: Reciter[]
   selectedReciter: string
-  onReciterChange: (reciter: string) => void
+  onReciterChange: (value: string) => void
 }
 
 export function ReciterSelect({ reciters, selectedReciter, onReciterChange }: ReciterSelectProps) {
-  const selectedReciterName = reciters?.find(r => r.identifier === selectedReciter)?.name || 'اختر القارئ'
+  const currentReciter = reciters?.find(r => r.id === selectedReciter)
 
   return (
     <Select.Root value={selectedReciter} onValueChange={onReciterChange}>
-      <Select.Trigger className="inline-flex items-center justify-between gap-4 px-6 py-3 rounded-full glass hover:bg-white/5 text-white border border-white/10 hover:border-primary/50 transition-all duration-300 min-w-[200px] outline-none group focus:ring-2 focus:ring-primary/20">
-        <Select.Value aria-label={selectedReciter}>
-          {selectedReciterName}
+      <Select.Trigger className="flex items-center gap-3 px-6 py-3 rounded-2xl glass border-primary/20 hover:border-primary/40 focus:outline-none transition-all duration-300 group shadow-lg min-w-[240px]">
+        <IconMicrophone className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
+        <Select.Value>
+          <span className="text-gray-200 font-medium">{currentReciter?.name || 'اختر القارئ'}</span>
         </Select.Value>
-        <Select.Icon>
-          <IconChevronDown className="w-5 h-5 text-primary group-hover:translate-y-0.5 transition-transform" />
+        <Select.Icon className="ml-auto">
+          <IconChevronDown className="w-4 h-4 text-gray-500" />
         </Select.Icon>
       </Select.Trigger>
 
       <Select.Portal>
-        <Select.Content position="popper" sideOffset={8} className="overflow-hidden bg-dark-card/90 backdrop-blur-xl rounded-2xl border border-white/10 shadow-premium min-w-[240px] animate-fade-in">
-          <Select.ScrollUpButton />
+        <Select.Content className="z-[150] overflow-hidden bg-dark-card/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl animate-fade-in">
           <Select.Viewport className="p-2">
             {reciters?.map((reciter) => (
               <Select.Item
-                key={reciter.identifier}
-                value={reciter.identifier}
-                className="relative flex items-center px-4 py-3 text-sm text-gray-300 rounded-xl hover:bg-primary/10 hover:text-primary cursor-pointer outline-none transition-colors data-[state=checked]:bg-primary/20 data-[state=checked]:text-primary"
+                key={reciter.id}
+                value={reciter.id}
+                className="relative flex items-center px-8 py-3 text-sm text-gray-300 hover:text-white hover:bg-primary/20 rounded-xl cursor-pointer outline-none transition-colors data-[selected]:bg-primary data-[selected]:text-white mb-1 last:mb-0"
               >
                 <Select.ItemText>{reciter.name}</Select.ItemText>
               </Select.Item>
             ))}
             {(!reciters || reciters.length === 0) && (
-              <div className="p-4 text-center text-sm text-gray-500">جاري التحميل...</div>
+              <div className="px-8 py-3 text-sm text-gray-500 italic">جاري تحميل القراء...</div>
             )}
           </Select.Viewport>
-          <Select.ScrollDownButton />
         </Select.Content>
       </Select.Portal>
     </Select.Root>
   )
-} 
+}

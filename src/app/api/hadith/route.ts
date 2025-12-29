@@ -1,30 +1,24 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 
-export async function GET() {
-    try {
-        const response = await axios.get('https://api.sunnah.com/v1/collections/nawawi40', {
-            headers: {
-                'x-api-key': process.env.NEXT_PUBLIC_HADITH_API_KEY || 'master_key', // Fallback if env is missing
-                'Accept': 'application/json'
-            }
-        });
+const HADITH_API_KEY = '$2y$10$roANFBBvVv7XQFORoMuuBRbAJ23Iio7YnXLStmzBeQJQgdvm8C';
+const BASE_URL = 'https://hadithapi.com/api';
 
+export async function GET(request: Request) {
+    const { searchParams } = new URL(request.url);
+    const path = searchParams.get('path') || 'hadiths';
+
+    // Clone searchParams to pass them to the external API
+    const externalParams = new URLSearchParams(searchParams);
+    externalParams.delete('path'); // Don't pass the internal 'path' param
+    externalParams.set('apiKey', HADITH_API_KEY);
+
+    try {
+        const url = `${BASE_URL}/${path}?${externalParams.toString()}`;
+        const response = await axios.get(url);
         return NextResponse.json(response.data);
     } catch (error: any) {
         console.error('Hadith Proxy Error:', error.response?.data || error.message);
-
-        // Fallback data if API key is invalid or service is down
-        // This ensures the site works "completely free" and without breakage
-        return NextResponse.json({
-            data: [
-                {
-                    id: "1",
-                    number: 1,
-                    arab: "إِنَّمَا الْأَعْمَالُ بِالنِّيَّاتِ، وَإِنَّمَا لِكُلِّ امْرِئٍ مَا نَوَى، فَمَنْ كَانَتْ هِجْرَتُهُ إِلَى اللَّهِ وَرَسُولِهِ فَهِجْرَتُهُ إِلَى اللَّهِ وَرَسُولِهِ، وَمَنْ كَانَتْ هِجْرَتُهُ لِدُنْيَا يُصِيبُهَا أَوْ امْرَأَةٍ يَنْكِحُهَا فَهِجْرَتُهُ إِلَى مَا هَاجَرَ إِلَيْهِ.",
-                    text: "Actions are but by intentions and every man shall have only that which he intended. Thus he whose migration was for Allah and His Messenger, his migration was for Allah and His Messenger, and he whose migration was for a worldly benefit or for a woman to marry, his migration was for that which he migrated."
-                }
-            ]
-        });
+        return NextResponse.json({ error: 'Failed to fetch data' }, { status: error.response?.status || 500 });
     }
 }
