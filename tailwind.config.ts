@@ -11,19 +11,19 @@ const config: Config = {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#10b981', // Emerald 500
-          dark: '#059669',    // Emerald 600
+          DEFAULT: '#8b5cf6', // Violet 500
+          dark: '#7c3aed',    // Violet 600
         },
         accent: {
-          DEFAULT: '#fbbf24', // Amber 400 (Gold)
-          dark: '#f59e0b',   // Amber 500
+          DEFAULT: '#f472b6', // Pink 400
+          dark: '#db2777',    // Pink 600
         },
         dark: {
-          DEFAULT: '#020617', // Slate 950
-          card: '#0f172a',    // Slate 900
-          lighter: '#1e293b', // Slate 800
+          DEFAULT: '#0f0f0f', // Near black (Matches personal-portfolio)
+          card: '#1a1a1a',    // Dark grey
+          lighter: '#262626',
         },
-        light: '#f8fafc',    // Slate 50
+        light: '#ffffff',
       },
       container: {
         center: true,
@@ -37,8 +37,8 @@ const config: Config = {
         arabic: ['var(--font-amiri)', 'serif'],
       },
       boxShadow: {
-        'premium': '0 0 50px -12px rgba(16, 185, 129, 0.25)',
-        'gold': '0 0 50px -12px rgba(251, 191, 36, 0.25)',
+        'premium': '0 0 50px -12px rgba(139, 92, 246, 0.25)',
+        'accent': '0 0 50px -12px rgba(244, 114, 182, 0.25)',
       },
       animation: {
         shine: 'shine 3s linear infinite',

@@ -7,8 +7,8 @@
     @apply bg-dark text-light min-h-screen selection:bg-primary selection:text-white antialiased;
     direction: rtl;
     background-image:
-      radial-gradient(circle at 0% 0%, rgba(16, 185, 129, 0.05) 0%, transparent 50%),
-      radial-gradient(circle at 100% 100%, rgba(251, 191, 36, 0.05) 0%, transparent 50%);
+      radial-gradient(circle at 0% 0%, rgba(139, 92, 246, 0.05) 0%, transparent 50%),
+      radial-gradient(circle at 100% 100%, rgba(244, 114, 182, 0.05) 0%, transparent 50%);
   }
 }
 

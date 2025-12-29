@@ -64,10 +64,6 @@ export async function getTafsir(surah: number, ayah: number) {
 }
 
 export async function getFortyHadith() {
-  const response = await hadithApi.get('/collections/nawawi40', {
-    headers: {
-      'x-api-key': process.env.NEXT_PUBLIC_HADITH_API_KEY
-    }
-  })
+  const response = await axios.get('/api/hadith')
   return response.data.data as Hadith[]
 } 
