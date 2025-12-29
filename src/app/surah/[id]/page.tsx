@@ -5,7 +5,7 @@ import { Header } from '@/components/Header'
 import { ReciterSelect } from '@/components/ReciterSelect'
 import { getReciters, getTafsirs, getFullSurahData } from '@/lib/api'
 import type { Verse, Reciter, Tafsir, Surah } from '@/lib/api'
-import { IconX, IconUser, IconPlayerPlay, IconBook, IconLayoutSidebarRightExpand, IconAlertCircle } from '@tabler/icons-react'
+import { IconX, IconUser, IconPlayerPlay, IconBook, IconAlertCircle } from '@tabler/icons-react'
 
 interface SurahPageProps {
   params: Promise<{
@@ -18,7 +18,7 @@ export default function SurahPage({ params }: SurahPageProps) {
   const [verses, setVerses] = React.useState<Verse[]>([])
   const [surah, setSurah] = React.useState<Surah | null>(null)
   const [reciters, setReciters] = React.useState<Reciter[]>([])
-  const [selectedReciter, setSelectedReciter] = React.useState('ar.alafasy')
+  const [selectedReciter, setSelectedReciter] = React.useState('7') // Alafasy defaults to 7
   const [selectedVerse, setSelectedVerse] = React.useState<Verse | null>(null)
   const [tafsirs, setTafsirs] = React.useState<Tafsir[]>([])
   const [selectedTafsirIdx, setSelectedTafsirIdx] = React.useState(0)
@@ -33,11 +33,11 @@ export default function SurahPage({ params }: SurahPageProps) {
 
     const loadInitialData = async () => {
       try {
-        const recitersData = await getReciters()
-        if (isMounted) setReciters(recitersData)
+        const recitersList = await getReciters()
+        if (isMounted) setReciters(recitersList)
 
         // Load Surah with default reciter
-        const data = await getFullSurahData(parseInt(id), selectedReciter)
+        const data = await getFullSurahData(parseInt(id), parseInt(selectedReciter))
         if (isMounted) {
           setSurah(data.metadata)
           setVerses(data.verses)
@@ -46,7 +46,7 @@ export default function SurahPage({ params }: SurahPageProps) {
       } catch (err) {
         if (isMounted) {
           console.error(err)
-          setError('عذراً، حدث خطأ أثناء تحميل السورة. يرجى المحاولة مرة أخرى.')
+          setError('عذراً، حدث خطأ أثناء تحميل البيانات من المصدر. يرجى المحاولة مرة أخرى.')
           setIsLoading(false)
         }
       }
@@ -56,10 +56,10 @@ export default function SurahPage({ params }: SurahPageProps) {
     return () => { isMounted = false }
   }, [id])
 
-  // Reload verses ONLY when reciter changes (and we already have metadata)
+  // Reload verses ONLY when reciter changes
   React.useEffect(() => {
     if (!isLoading && surah && selectedReciter) {
-      getFullSurahData(parseInt(id), selectedReciter).then((data) => {
+      getFullSurahData(parseInt(id), parseInt(selectedReciter)).then((data) => {
         setVerses(data.verses)
       }).catch(err => {
         console.error("Failed to change reciter:", err)
@@ -72,6 +72,7 @@ export default function SurahPage({ params }: SurahPageProps) {
     setSelectedTafsirIdx(0)
     setIsLoadingTafsir(true)
     try {
+      // Use numberInSurah for Tafsir fetch
       const data = await getTafsirs(parseInt(id), verse.numberInSurah)
       setTafsirs(data)
     } finally {
@@ -93,13 +94,13 @@ export default function SurahPage({ params }: SurahPageProps) {
             {error ? (
               <div className="max-w-xl mx-auto glass p-8 rounded-3xl text-center border-red-500/20">
                 <IconAlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-                <h3 className="text-xl font-bold font-arabic mb-2">تعذر التحميل</h3>
+                <h3 className="text-xl font-bold font-arabic mb-2">عطل في المزود</h3>
                 <p className="text-gray-400 font-arabic mb-6">{error}</p>
                 <button
                   onClick={() => window.location.reload()}
                   className="px-6 py-2 rounded-xl bg-primary text-white font-arabic font-bold"
                 >
-                  إعادة المحاولة
+                  إعادة تحميل الصفحة
                 </button>
               </div>
             ) : (
@@ -114,7 +115,7 @@ export default function SurahPage({ params }: SurahPageProps) {
                     ) : (
                       <>
                         <h2 className="text-3xl font-bold font-arabic text-primary">{surah?.name}</h2>
-                        <p className="text-gray-500 text-sm font-arabic">{surah?.englishNameTranslation} • {surah?.numberOfAyahs} آية</p>
+                        <p className="text-gray-300 text-sm font-arabic">{surah?.englishNameTranslation} • {surah?.numberOfAyahs} آية</p>
                       </>
                     )}
                   </div>
@@ -168,7 +169,7 @@ export default function SurahPage({ params }: SurahPageProps) {
                   </div>
                   <div className="text-right">
                     <h3 className="font-bold text-lg font-arabic">التفسير والبيان</h3>
-                    <p className="text-xs text-gray-500 font-arabic">الآية {selectedVerse.numberInSurah} من سورة {surah?.name}</p>
+                    <p className="text-xs text-gray-400 font-arabic">الآية {selectedVerse.numberInSurah} من سورة {surah?.name}</p>
                   </div>
                 </div>
                 <button
@@ -200,6 +201,7 @@ export default function SurahPage({ params }: SurahPageProps) {
                         {t.author}
                       </button>
                     ))}
+                    {isLoadingTafsir && <div className="h-10 w-24 bg-white/5 rounded-xl animate-pulse"></div>}
                   </div>
                 </div>
 
@@ -212,7 +214,6 @@ export default function SurahPage({ params }: SurahPageProps) {
                     <div className="space-y-3">
                       <div className="h-4 bg-white/5 rounded w-full animate-pulse"></div>
                       <div className="h-4 bg-white/5 rounded w-4/5 animate-pulse"></div>
-                      <div className="h-4 bg-white/5 rounded w-full animate-pulse"></div>
                     </div>
                   ) : (
                     <div
