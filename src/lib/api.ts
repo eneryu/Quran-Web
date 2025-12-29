@@ -84,23 +84,35 @@ export async function getSurahs(): Promise<Surah[]> {
 
 export async function getFullSurahData(number: number, edition: string = 'ar.alafasy') {
   try {
-    // Fetch Arabic text and Audio edition in one call
-    // Note: quran-simple is very fast and reliable for text
-    const response = await axios.get(`${QURAN_API}/surah/${number}/editions/quran-simple,${edition}`);
-    const [textEdition, audioEdition] = response.data.data;
+    // Separate calls are often more reliable than multi-edition calls on some networks/proxies
+    const [textRes, audioRes] = await Promise.all([
+      axios.get(`${QURAN_API}/surah/${number}/quran-uthmani`),
+      axios.get(`${QURAN_API}/surah/${number}/${edition}`)
+    ]);
+
+    const textData = textRes.data.data;
+    const audioData = audioRes.data.data;
+
+    if (!textData || !textData.verses) {
+      throw new Error('Arabic text verses missing from API response');
+    }
+
+    if (!audioData || !audioData.verses) {
+      throw new Error('Audio verses missing from API response');
+    }
 
     return {
       metadata: {
-        number: textEdition.number,
-        name: textEdition.name,
-        englishName: textEdition.englishName,
-        englishNameTranslation: textEdition.englishNameTranslation,
-        numberOfAyahs: textEdition.numberOfAyahs,
-        revelationType: textEdition.revelationType,
+        number: textData.number,
+        name: textData.name,
+        englishName: textData.englishName,
+        englishNameTranslation: textData.englishNameTranslation,
+        numberOfAyahs: textData.numberOfAyahs,
+        revelationType: textData.revelationType,
       },
-      verses: textEdition.verses.map((v: any, i: number) => ({
+      verses: textData.verses.map((v: any, i: number) => ({
         ...v,
-        audio: audioEdition.verses[i].audio
+        audio: audioData.verses[i]?.audio || ''
       }))
     };
   } catch (error) {
