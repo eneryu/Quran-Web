@@ -217,11 +217,6 @@ export default function SurahPage({ params }: SurahPageProps) {
                                         <div className="w-1 h-4 bg-primary rounded-full"></div>
                                         شرح الآية:
                                     </h4>
-                                    {tafsirs[selectedTafsirIdx]?.groupVerse && (
-                                        <p className="text-xs text-accent bg-accent/10 px-3 py-1.5 rounded-lg inline-block font-arabic">
-                                            ملاحظة: {tafsirs[selectedTafsirIdx].groupVerse}
-                                        </p>
-                                    )}
                                     {isLoadingTafsir ? (
                                         <div className="space-y-3">
                                             <div className="h-4 bg-white/5 rounded w-full animate-pulse"></div>

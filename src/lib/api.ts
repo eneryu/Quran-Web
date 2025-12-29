@@ -1,7 +1,8 @@
 import axios from 'axios';
 
-// NEW API - Much more reliable and has Arabic by default
+// APIs
 const QURAN_API = 'https://quranapi.pages.dev/api';
+const TAFSIR_API = 'https://cdn.jsdelivr.net/gh/spa5k/tafsir_api@main/tafsir';
 const HADITH_API_PROXY = '/api/hadith';
 
 export interface Surah {
@@ -29,7 +30,6 @@ export interface Reciter {
 export interface Tafsir {
   author: string;
   content: string;
-  groupVerse?: string | null;
 }
 
 export interface HadithBook {
@@ -55,22 +55,7 @@ export interface Hadith {
   bookSlug: string;
 }
 
-// List of surahs in Arabic for quick reference
-const surahNamesAr = [
-  'الفاتحة', 'البقرة', 'آل عمران', 'النساء', 'المائدة', 'الأنعام', 'الأعراف', 'الأنفال', 'التوبة', 'يونس',
-  'هود', 'يوسف', 'الرعد', 'إبراهيم', 'الحجر', 'النحل', 'الإسراء', 'الكهف', 'مريم', 'طه',
-  'الأنبياء', 'الحج', 'المؤمنون', 'النور', 'الفرقان', 'الشعراء', 'النمل', 'القصص', 'العنكبوت', 'الروم',
-  'لقمان', 'السجدة', 'الأحزاب', 'سبأ', 'فاطر', 'يس', 'الصافات', 'ص', 'الزمر', 'غافر',
-  'فصلت', 'الشورى', 'الزخرف', 'الدخان', 'الجاثية', 'الأحقاف', 'محمد', 'الفتح', 'الحجرات', 'ق',
-  'الذاريات', 'الطور', 'النجم', 'القمر', 'الرحمن', 'الواقعة', 'الحديد', 'المجادلة', 'الحشر', 'الممتحنة',
-  'الصف', 'الجمعة', 'المنافقون', 'التغابن', 'الطلاق', 'التحريم', 'الملك', 'القلم', 'الحاقة', 'المعارج',
-  'نوح', 'الجن', 'المزمل', 'المدثر', 'القيامة', 'الإنسان', 'المرسلات', 'النبأ', 'النازعات', 'عبس',
-  'التكوير', 'الانفطار', 'المطففين', 'الانشقاق', 'البروج', 'الطارق', 'الأعلى', 'الغاشية', 'الفجر', 'البلد',
-  'الشمس', 'الليل', 'الضحى', 'الشرح', 'التين', 'العلق', 'القدر', 'البينة', 'الزلزلة', 'العاديات',
-  'القارعة', 'التكاثر', 'العصر', 'الهمزة', 'الفيل', 'قريش', 'الماعون', 'الكوثر', 'الكافرون', 'النصر',
-  'المسد', 'الإخلاص', 'الفلق', 'الناس'
-];
-
+// Arabic reciter names
 const reciterNamesAr: Record<string, string> = {
   '1': 'مشاري راشد العفاسي',
   '2': 'أبو بكر الشاطري',
@@ -79,22 +64,24 @@ const reciterNamesAr: Record<string, string> = {
   '5': 'هاني الرفاعي'
 };
 
-const tafsirAuthorAr: Record<string, string> = {
-  'Ibn Kathir': 'ابن كثير',
-  'Maarif Ul Quran': 'معارف القرآن',
-  'Tazkirul Quran': 'تذكير القرآن'
-};
+// Arabic tafsir sources from spa5k/tafsir_api
+const TAFSIR_SOURCES = [
+  { slug: 'ar-tafsir-muyassar', name: 'التفسير الميسر' },
+  { slug: 'ar-tafsir-ibn-kathir', name: 'تفسير ابن كثير' },
+  { slug: 'ar-tafsser-al-tabari', name: 'تفسير الطبري' }
+];
 
-// QURAN FUNCTIONS using quranapi.pages.dev
+// QURAN FUNCTIONS
 export async function getSurahs(): Promise<Surah[]> {
   try {
-    const response = await axios.get(`${QURAN_API}/surahlist.json`);
+    // Use the full Arabic dump endpoint
+    const response = await axios.get(`${QURAN_API}/arabic1.json`);
     const list = response.data || [];
-    return list.map((s: any, i: number) => ({
-      number: i + 1,
-      name: surahNamesAr[i] || s.name,
-      englishName: s.name,
-      englishNameTranslation: s.translation,
+    return list.map((s: any) => ({
+      number: s.surahNo,
+      name: s.surahNameArabicLong || s.surahNameArabic,
+      englishName: s.surahName,
+      englishNameTranslation: s.surahNameTranslation,
       numberOfAyahs: s.totalAyah,
       revelationType: s.revelationPlace
     }));
@@ -109,11 +96,17 @@ export async function getSurahData(surahNo: number): Promise<{ metadata: Surah; 
     const response = await axios.get(`${QURAN_API}/${surahNo}.json`);
     const data = response.data;
 
-    const verses: Verse[] = data.arabic1.map((text: string, i: number) => ({
+    // Use arabic1 for verses (Uthmani script with tashkeel)
+    const arabicVerses = data.arabic1 || [];
+
+    // Get per-verse audio from verseAudio if available, otherwise use chapter audio
+    const verseAudios = data.verseAudio?.['1']?.audios || [];
+
+    const verses: Verse[] = arabicVerses.map((text: string, i: number) => ({
       number: i + 1,
       numberInSurah: i + 1,
       text,
-      audio: data.audio?.['1']?.originalUrl // Default to Alafasy
+      audio: verseAudios[i]?.originalUrl || verseAudios[i]?.url || data.audio?.['1']?.originalUrl
     }));
 
     const reciters: Reciter[] = Object.entries(data.audio || {}).map(([id, info]: [string, any]) => ({
@@ -125,7 +118,7 @@ export async function getSurahData(surahNo: number): Promise<{ metadata: Surah; 
     return {
       metadata: {
         number: data.surahNo,
-        name: data.surahNameArabicLong || surahNamesAr[surahNo - 1],
+        name: data.surahNameArabicLong || data.surahNameArabic,
         englishName: data.surahName,
         englishNameTranslation: data.surahNameTranslation,
         numberOfAyahs: data.totalAyah,
@@ -140,19 +133,29 @@ export async function getSurahData(surahNo: number): Promise<{ metadata: Surah; 
   }
 }
 
+// ARABIC TAFSIR using spa5k/tafsir_api
 export async function getTafsirs(surahNo: number, ayahNo: number): Promise<Tafsir[]> {
-  try {
-    const response = await axios.get(`${QURAN_API}/tafsir/${surahNo}_${ayahNo}.json`);
-    const data = response.data.tafsirs || [];
-    return data.map((t: any) => ({
-      author: tafsirAuthorAr[t.author] || t.author,
-      content: t.content,
-      groupVerse: t.groupVerse
-    }));
-  } catch (error) {
-    console.error('Error fetching tafsirs:', error);
-    return [{ author: 'خطأ', content: 'تعذر تحميل التفسير حالياً.', groupVerse: null }];
+  const results: Tafsir[] = [];
+
+  for (const source of TAFSIR_SOURCES) {
+    try {
+      const response = await axios.get(`${TAFSIR_API}/${source.slug}/${surahNo}/${ayahNo}.json`);
+      if (response.data?.text) {
+        results.push({
+          author: source.name,
+          content: response.data.text
+        });
+      }
+    } catch (error) {
+      console.error(`Error fetching tafsir ${source.slug}:`, error);
+    }
   }
+
+  if (results.length === 0) {
+    return [{ author: 'خطأ', content: 'تعذر تحميل التفسير حالياً. يرجى المحاولة مرة أخرى.' }];
+  }
+
+  return results;
 }
 
 // HADITH FUNCTIONS
