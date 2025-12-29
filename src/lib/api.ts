@@ -72,10 +72,27 @@ export async function getSurahWithAudio(number: number, edition: string): Promis
   return response.data.data;
 }
 
+const reciterNamesAr: Record<string, string> = {
+  'ar.alafasy': 'مشاري راشد العفاسي',
+  'ar.abdurrahmaansudais': 'عبد الرحمن السديس',
+  'ar.abdulsamad': 'عبد الباسط عبد الصمد',
+  'ar.shaatree': 'أبو بكر الشاطري',
+  'ar.ahmedajamy': 'أحمد بن علي العجمي',
+  'ar.husary': 'محمود خليل الحصري',
+  'ar.minshawi': 'محمد صديق المنشاوي',
+  'ar.mahermuaiqly': 'ماهر المعيقلي',
+  'ar.saoodshuraym': 'سعود الشريم',
+  'ar.hanirifai': 'هاني الرفاعي',
+  'ar.ghamadi': 'سعد الغامدي',
+  'ar.hudhaify': 'علي بن عبد الرحمن الحذيفي'
+};
+
 export async function getReciters(): Promise<Reciter[]> {
-  // Fetch audio editions
   const response = await axios.get(`${QURAN_API}/edition/format/audio`);
-  return response.data.data;
+  return response.data.data.map((r: any) => ({
+    ...r,
+    name: reciterNamesAr[r.identifier] || r.name
+  }));
 }
 
 export async function getRecitation(identifier: string, surah: number): Promise<string> {
@@ -105,20 +122,20 @@ export async function getTafsirs(surah: number, ayah: number): Promise<Tafsir[]>
 // HADITH FUNCTIONS
 export async function getHadithBooks(): Promise<HadithBook[]> {
   const response = await axios.get(`${HADITH_API_PROXY}?path=books`);
-  return response.data.books;
+  return response.data.books || [];
 }
 
 export async function getHadithChapters(bookSlug: string): Promise<HadithChapter[]> {
   const response = await axios.get(`${HADITH_API_PROXY}?path=${bookSlug}/chapters`);
-  return response.data.chapters;
+  return response.data.chapters || [];
 }
 
 export async function getHadiths(bookSlug: string, chapterId: string): Promise<Hadith[]> {
   const response = await axios.get(`${HADITH_API_PROXY}?path=hadiths&book=${bookSlug}&chapter=${chapterId}`);
-  return response.data.hadiths.data;
+  return response.data.hadiths?.data || [];
 }
 
 export async function searchHadiths(query: string): Promise<Hadith[]> {
   const response = await axios.get(`${HADITH_API_PROXY}?path=hadiths&hadithArabic=${encodeURIComponent(query)}`);
-  return response.data.hadiths.data;
+  return response.data.hadiths?.data || [];
 }

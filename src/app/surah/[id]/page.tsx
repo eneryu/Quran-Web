@@ -32,10 +32,12 @@ export default function SurahPage({ params }: SurahPageProps) {
       getReciters()
     ]).then(([surahData, recitersData]) => {
       setSurah(surahData)
-      setReciters(recitersData)
-      // If alafasy is available, it's already selected
-      if (!recitersData.find(r => r.identifier === 'ar.alafasy')) {
-        setSelectedReciter(recitersData[0]?.identifier || '')
+      if (Array.isArray(recitersData)) {
+        setReciters(recitersData)
+        // If alafasy is available, it's already selected
+        if (!recitersData.find(r => r.identifier === 'ar.alafasy')) {
+          setSelectedReciter(recitersData[0]?.identifier || '')
+        }
       }
     })
   }, [id])
@@ -103,7 +105,7 @@ export default function SurahPage({ params }: SurahPageProps) {
                   </div>
                 </div>
               ))}
-              {verses.length === 0 && Array(15).fill(0).map((_, i) => (
+              {(!verses || verses.length === 0) && Array(15).fill(0).map((_, i) => (
                 <div key={i} className="h-24 glass rounded-xl animate-pulse"></div>
               ))}
             </div>
@@ -148,13 +150,13 @@ export default function SurahPage({ params }: SurahPageProps) {
                 <div className="space-y-4">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-widest block text-right font-arabic">اختر المفسر:</label>
                   <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar flex-row-reverse">
-                    {tafsirs.map((t, idx) => (
+                    {tafsirs?.map((t, idx) => (
                       <button
                         key={idx}
                         onClick={() => setSelectedTafsirIdx(idx)}
                         className={`px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 font-arabic ${selectedTafsirIdx === idx
-                            ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                            : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                          ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                          : 'bg-white/5 text-gray-400 hover:bg-white/10'
                           }`}
                       >
                         <IconUser className="w-4 h-4" />
