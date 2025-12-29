@@ -1,8 +1,8 @@
 import axios from 'axios';
 
-// --- NEW STABLE ARABIC APIs (Quran.com v4) ---
-const QURAN_COM_API = 'https://api.quran.com/api/v4';
-const HADITH_CDN = 'https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions';
+// NEW API - Much more reliable and has Arabic by default
+const QURAN_API = 'https://quranapi.pages.dev/api';
+const HADITH_API_PROXY = '/api/hadith';
 
 export interface Surah {
   number: number;
@@ -18,17 +18,18 @@ export interface Verse {
   text: string;
   numberInSurah: number;
   audio?: string;
-  verse_key?: string;
 }
 
 export interface Reciter {
-  identifier: string;
+  id: string;
   name: string;
+  url?: string;
 }
 
 export interface Tafsir {
   author: string;
   content: string;
+  groupVerse?: string | null;
 }
 
 export interface HadithBook {
@@ -41,28 +42,61 @@ export interface HadithBook {
 export interface HadithChapter {
   chapterNumber: string;
   chapterArabic: string;
+  chapterEnglish: string;
 }
 
 export interface Hadith {
   id: number;
   hadithNumber: string;
   hadithArabic: string;
+  hadithEnglish: string;
+  hadithUrdu: string;
   status: string;
   bookSlug: string;
 }
 
-// --- QURAN FUNCTIONS (Arabic First) ---
+// List of surahs in Arabic for quick reference
+const surahNamesAr = [
+  'الفاتحة', 'البقرة', 'آل عمران', 'النساء', 'المائدة', 'الأنعام', 'الأعراف', 'الأنفال', 'التوبة', 'يونس',
+  'هود', 'يوسف', 'الرعد', 'إبراهيم', 'الحجر', 'النحل', 'الإسراء', 'الكهف', 'مريم', 'طه',
+  'الأنبياء', 'الحج', 'المؤمنون', 'النور', 'الفرقان', 'الشعراء', 'النمل', 'القصص', 'العنكبوت', 'الروم',
+  'لقمان', 'السجدة', 'الأحزاب', 'سبأ', 'فاطر', 'يس', 'الصافات', 'ص', 'الزمر', 'غافر',
+  'فصلت', 'الشورى', 'الزخرف', 'الدخان', 'الجاثية', 'الأحقاف', 'محمد', 'الفتح', 'الحجرات', 'ق',
+  'الذاريات', 'الطور', 'النجم', 'القمر', 'الرحمن', 'الواقعة', 'الحديد', 'المجادلة', 'الحشر', 'الممتحنة',
+  'الصف', 'الجمعة', 'المنافقون', 'التغابن', 'الطلاق', 'التحريم', 'الملك', 'القلم', 'الحاقة', 'المعارج',
+  'نوح', 'الجن', 'المزمل', 'المدثر', 'القيامة', 'الإنسان', 'المرسلات', 'النبأ', 'النازعات', 'عبس',
+  'التكوير', 'الانفطار', 'المطففين', 'الانشقاق', 'البروج', 'الطارق', 'الأعلى', 'الغاشية', 'الفجر', 'البلد',
+  'الشمس', 'الليل', 'الضحى', 'الشرح', 'التين', 'العلق', 'القدر', 'البينة', 'الزلزلة', 'العاديات',
+  'القارعة', 'التكاثر', 'العصر', 'الهمزة', 'الفيل', 'قريش', 'الماعون', 'الكوثر', 'الكافرون', 'النصر',
+  'المسد', 'الإخلاص', 'الفلق', 'الناس'
+];
 
+const reciterNamesAr: Record<string, string> = {
+  '1': 'مشاري راشد العفاسي',
+  '2': 'أبو بكر الشاطري',
+  '3': 'ناصر القطامي',
+  '4': 'ياسر الدوسري',
+  '5': 'هاني الرفاعي'
+};
+
+const tafsirAuthorAr: Record<string, string> = {
+  'Ibn Kathir': 'ابن كثير',
+  'Maarif Ul Quran': 'معارف القرآن',
+  'Tazkirul Quran': 'تذكير القرآن'
+};
+
+// QURAN FUNCTIONS using quranapi.pages.dev
 export async function getSurahs(): Promise<Surah[]> {
   try {
-    const response = await axios.get(`${QURAN_COM_API}/chapters?language=ar`);
-    return response.data.chapters.map((c: any) => ({
-      number: c.id,
-      name: c.name_arabic,
-      englishName: c.name_complex,
-      englishNameTranslation: c.translated_name.name,
-      numberOfAyahs: c.verses_count,
-      revelationType: c.revelation_place === 'makkah' ? 'Meccan' : 'Medinan'
+    const response = await axios.get(`${QURAN_API}/surahlist.json`);
+    const list = response.data || [];
+    return list.map((s: any, i: number) => ({
+      number: i + 1,
+      name: surahNamesAr[i] || s.name,
+      englishName: s.name,
+      englishNameTranslation: s.translation,
+      numberOfAyahs: s.totalAyah,
+      revelationType: s.revelationPlace
     }));
   } catch (error) {
     console.error('Error fetching surahs:', error);
@@ -70,144 +104,90 @@ export async function getSurahs(): Promise<Surah[]> {
   }
 }
 
-export async function getFullSurahData(number: number, reciterId: string = 'ar.alafasy') {
+export async function getSurahData(surahNo: number): Promise<{ metadata: Surah; verses: Verse[]; reciters: Reciter[] }> {
   try {
-    // Use alquran.cloud - it returns 'ayahs' not 'verses'
-    const ALQURAN_API = 'https://api.alquran.cloud/v1';
+    const response = await axios.get(`${QURAN_API}/${surahNo}.json`);
+    const data = response.data;
 
-    const [textRes, audioRes] = await Promise.all([
-      axios.get(`${ALQURAN_API}/surah/${number}/quran-uthmani`),
-      axios.get(`${ALQURAN_API}/surah/${number}/${reciterId}`)
-    ]);
+    const verses: Verse[] = data.arabic1.map((text: string, i: number) => ({
+      number: i + 1,
+      numberInSurah: i + 1,
+      text,
+      audio: data.audio?.['1']?.originalUrl // Default to Alafasy
+    }));
 
-    const textData = textRes.data.data;
-    const audioData = audioRes.data.data;
-
-    // alquran.cloud uses 'ayahs' NOT 'verses'
-    if (!textData || !textData.ayahs) {
-      throw new Error('Arabic text ayahs missing from API response');
-    }
+    const reciters: Reciter[] = Object.entries(data.audio || {}).map(([id, info]: [string, any]) => ({
+      id,
+      name: reciterNamesAr[id] || info.reciter,
+      url: info.originalUrl || info.url
+    }));
 
     return {
       metadata: {
-        number: textData.number,
-        name: textData.name,
-        englishName: textData.englishName,
-        englishNameTranslation: textData.englishNameTranslation,
-        numberOfAyahs: textData.numberOfAyahs,
-        revelationType: textData.revelationType
+        number: data.surahNo,
+        name: data.surahNameArabicLong || surahNamesAr[surahNo - 1],
+        englishName: data.surahName,
+        englishNameTranslation: data.surahNameTranslation,
+        numberOfAyahs: data.totalAyah,
+        revelationType: data.revelationPlace
       },
-      verses: textData.ayahs.map((v: any, i: number) => ({
-        number: v.number,
-        text: v.text,
-        numberInSurah: v.numberInSurah,
-        audio: audioData?.ayahs?.[i]?.audio || ''
-      }))
+      verses,
+      reciters
     };
   } catch (error) {
-    console.error('Error fetching full surah data:', error);
+    console.error('Error fetching surah data:', error);
     throw error;
   }
 }
 
-export async function getReciters(): Promise<Reciter[]> {
-  // Common Arabic reciters from alquran.cloud (ar.* format)
-  return [
-    { identifier: 'ar.alafasy', name: 'مشاري راشد العفاسي' },
-    { identifier: 'ar.abdulsamad', name: 'عبد الباسط عبد الصمد' },
-    { identifier: 'ar.abdurrahmaansudais', name: 'عبد الرحمن السديس' },
-    { identifier: 'ar.mahermuaiqly', name: 'ماهر المعيقلي' },
-    { identifier: 'ar.husary', name: 'محمود خليل الحصري' },
-    { identifier: 'ar.minshawi', name: 'محمد صديق المنشاوي' },
-    { identifier: 'ar.shaatree', name: 'أبو بكر الشاطري' },
-    { identifier: 'ar.ghamadi', name: 'سعد الغامدي' }
-  ];
-}
-
-export async function getTafsirs(surah: number, ayah: number): Promise<Tafsir[]> {
+export async function getTafsirs(surahNo: number, ayahNo: number): Promise<Tafsir[]> {
   try {
-    // Tafsir Al-Muyassar (ID: 16) and Ibn Kathir (ID: 169 - actually let's re-verify) 
-    // Let's use Muyassar (16) and Jalalayn (17) from Quran.com v4
-    const [muyassar, jalalayn] = await Promise.all([
-      axios.get(`${QURAN_COM_API}/tafsirs/16/by_ayah/${surah}:${ayah}`),
-      axios.get(`${QURAN_COM_API}/tafsirs/17/by_ayah/${surah}:${ayah}`)
-    ]);
-
-    return [
-      {
-        author: 'التفسير الميسر',
-        content: muyassar.data.tafsir.text
-      },
-      {
-        author: 'تفسير الجلالين',
-        content: jalalayn.data.tafsir.text
-      }
-    ];
+    const response = await axios.get(`${QURAN_API}/tafsir/${surahNo}_${ayahNo}.json`);
+    const data = response.data.tafsirs || [];
+    return data.map((t: any) => ({
+      author: tafsirAuthorAr[t.author] || t.author,
+      content: t.content,
+      groupVerse: t.groupVerse
+    }));
   } catch (error) {
     console.error('Error fetching tafsirs:', error);
-    return [{ author: 'عربي', content: 'لم يتم العثور على التفسير لهذه الآية.' }];
+    return [{ author: 'خطأ', content: 'تعذر تحميل التفسير حالياً.', groupVerse: null }];
   }
 }
 
-// --- HADITH FUNCTIONS (Arabic Library via CDN) ---
-
-let cachedHadiths: Record<string, any> = {};
-
-async function fetchHadithEdition(slug: string) {
-  if (cachedHadiths[slug]) return cachedHadiths[slug];
-  const res = await axios.get(`${HADITH_CDN}/ara-${slug}.json`);
-  cachedHadiths[slug] = res.data;
-  return res.data;
-}
-
+// HADITH FUNCTIONS
 export async function getHadithBooks(): Promise<HadithBook[]> {
-  // Manually curate the best Arabic editions from the CDN
-  return [
-    { bookName: 'صحيح البخاري', bookSlug: 'bukhari', hadiths_count: '7563', chapters_count: '97' },
-    { bookName: 'صحيح مسلم', bookSlug: 'muslim', hadiths_count: '3033', chapters_count: '56' },
-    { bookName: 'سنن الترمذي', bookSlug: 'tirmidhi', hadiths_count: '3956', chapters_count: '50' },
-    { bookName: 'سنن أبي داود', bookSlug: 'abudawud', hadiths_count: '5274', chapters_count: '43' },
-    { bookName: 'سنن النسائي', bookSlug: 'nasai', hadiths_count: '5758', chapters_count: '52' },
-    { bookName: 'سنن ابن ماجه', bookSlug: 'ibnmajah', hadiths_count: '4341', chapters_count: '37' }
-  ];
+  try {
+    const response = await axios.get(`${HADITH_API_PROXY}?path=books`);
+    return response.data.books || [];
+  } catch {
+    return [];
+  }
 }
 
 export async function getHadithChapters(bookSlug: string): Promise<HadithChapter[]> {
-  // The CDN Hadith API has a simpler structure. We'll group by metadata if available 
-  // or just return numbers if the structure is flat.
-  // For now, because the CDN is flat, we'll return a "Browse All" or "Search" focused approach.
-  return [{ chapterNumber: '1', chapterArabic: 'تصفح جميع الأحاديث' }];
+  try {
+    const response = await axios.get(`${HADITH_API_PROXY}?path=${bookSlug}/chapters`);
+    return response.data.chapters || [];
+  } catch {
+    return [];
+  }
 }
 
-export async function getHadiths(bookSlug: string, _chapterId: string): Promise<Hadith[]> {
+export async function getHadiths(bookSlug: string, chapterId: string): Promise<Hadith[]> {
   try {
-    const data = await fetchHadithEdition(bookSlug);
-    // Return first 100 for browsing
-    return data.hadiths.slice(0, 100).map((h: any, i: number) => ({
-      id: i,
-      hadithNumber: h.hadithnumber?.toString() || (i + 1).toString(),
-      hadithArabic: h.text,
-      status: 'من المصدر',
-      bookSlug: bookSlug
-    }));
-  } catch (err) {
+    const response = await axios.get(`${HADITH_API_PROXY}?path=hadiths&book=${bookSlug}&chapter=${chapterId}`);
+    return response.data.hadiths?.data || [];
+  } catch {
     return [];
   }
 }
 
 export async function searchHadiths(query: string): Promise<Hadith[]> {
   try {
-    // Search in Bukhari by default or all cached
-    const data = await fetchHadithEdition('bukhari');
-    const filtered = data.hadiths.filter((h: any) => h.text.includes(query)).slice(0, 50);
-    return filtered.map((h: any, i: number) => ({
-      id: i,
-      hadithNumber: h.hadithnumber?.toString() || (i + 1).toString(),
-      hadithArabic: h.text,
-      status: 'صحيح',
-      bookSlug: 'bukhari'
-    }));
-  } catch (err) {
+    const response = await axios.get(`${HADITH_API_PROXY}?path=hadiths&hadithArabic=${encodeURIComponent(query)}`);
+    return response.data.hadiths?.data || [];
+  } catch {
     return [];
   }
 }
