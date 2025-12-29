@@ -3,9 +3,9 @@
 import React from 'react'
 import { Header } from '@/components/Header'
 import { ReciterSelect } from '@/components/ReciterSelect'
-import { getSurah, getReciters, getTafsirs, getSurahWithAudio } from '@/lib/api'
+import { getReciters, getTafsirs, getFullSurahData } from '@/lib/api'
 import type { Verse, Reciter, Tafsir, Surah } from '@/lib/api'
-import { IconX, IconUser, IconPlayerPlay, IconBook, IconLayoutSidebarRightExpand } from '@tabler/icons-react'
+import { IconX, IconUser, IconPlayerPlay, IconBook, IconLayoutSidebarRightExpand, IconAlertCircle } from '@tabler/icons-react'
 
 interface SurahPageProps {
   params: Promise<{
@@ -15,43 +15,59 @@ interface SurahPageProps {
 
 export default function SurahPage({ params }: SurahPageProps) {
   const { id } = React.use(params)
-  const [verses, setVerses] = React.useState<(Verse & { audio?: string })[]>([])
+  const [verses, setVerses] = React.useState<Verse[]>([])
   const [surah, setSurah] = React.useState<Surah | null>(null)
   const [reciters, setReciters] = React.useState<Reciter[]>([])
   const [selectedReciter, setSelectedReciter] = React.useState('ar.alafasy')
-  const [selectedVerse, setSelectedVerse] = React.useState<(Verse & { audio?: string }) | null>(null)
+  const [selectedVerse, setSelectedVerse] = React.useState<Verse | null>(null)
   const [tafsirs, setTafsirs] = React.useState<Tafsir[]>([])
   const [selectedTafsirIdx, setSelectedTafsirIdx] = React.useState(0)
+  const [isLoading, setIsLoading] = React.useState(true)
   const [isLoadingTafsir, setIsLoadingTafsir] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
   const audioRef = React.useRef<HTMLAudioElement>(null)
 
-  // Initial Load
+  // Initial Load: Reciters and Surah Data
   React.useEffect(() => {
-    Promise.all([
-      getSurah(parseInt(id)),
-      getReciters()
-    ]).then(([surahData, recitersData]) => {
-      setSurah(surahData)
-      if (Array.isArray(recitersData)) {
-        setReciters(recitersData)
-        // If alafasy is available, it's already selected
-        if (!recitersData.find(r => r.identifier === 'ar.alafasy')) {
-          setSelectedReciter(recitersData[0]?.identifier || '')
+    let isMounted = true;
+
+    const loadInitialData = async () => {
+      try {
+        const recitersData = await getReciters()
+        if (isMounted) setReciters(recitersData)
+
+        // Load Surah with default reciter
+        const data = await getFullSurahData(parseInt(id), selectedReciter)
+        if (isMounted) {
+          setSurah(data.metadata)
+          setVerses(data.verses)
+          setIsLoading(false)
+        }
+      } catch (err) {
+        if (isMounted) {
+          console.error(err)
+          setError('عذراً، حدث خطأ أثناء تحميل السورة. يرجى المحاولة مرة أخرى.')
+          setIsLoading(false)
         }
       }
-    })
+    }
+
+    loadInitialData()
+    return () => { isMounted = false }
   }, [id])
 
-  // Load verses when reciter changes
+  // Reload verses ONLY when reciter changes (and we already have metadata)
   React.useEffect(() => {
-    if (selectedReciter) {
-      getSurahWithAudio(parseInt(id), selectedReciter).then((data) => {
+    if (!isLoading && surah && selectedReciter) {
+      getFullSurahData(parseInt(id), selectedReciter).then((data) => {
         setVerses(data.verses)
+      }).catch(err => {
+        console.error("Failed to change reciter:", err)
       })
     }
-  }, [id, selectedReciter])
+  }, [selectedReciter])
 
-  const handleVerseClick = async (verse: Verse & { audio?: string }) => {
+  const handleVerseClick = async (verse: Verse) => {
     setSelectedVerse(verse)
     setSelectedTafsirIdx(0)
     setIsLoadingTafsir(true)
@@ -74,41 +90,66 @@ export default function SurahPage({ params }: SurahPageProps) {
           dir="rtl"
         >
           <div className="container mx-auto px-4 py-8">
-            <div className="glass p-6 rounded-2xl mb-8 flex flex-wrap items-center justify-between gap-4">
-              <div className="text-right">
-                <h2 className="text-3xl font-bold font-arabic text-primary">{surah?.name}</h2>
-                <p className="text-gray-500 text-sm font-arabic">{surah?.englishNameTranslation} • {surah?.numberOfAyahs} آية</p>
-              </div>
-              <div className="flex items-center gap-4 flex-wrap">
-                <ReciterSelect
-                  reciters={reciters || []}
-                  selectedReciter={selectedReciter}
-                  onReciterChange={setSelectedReciter}
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-4 max-w-5xl mx-auto">
-              {verses?.map((verse, index) => (
-                <div
-                  key={verse.number}
-                  onClick={() => handleVerseClick(verse)}
-                  className={`verse-card group relative ${selectedVerse?.number === verse.number ? 'bg-primary/10 border-primary ring-1 ring-primary/20 shadow-lg shadow-primary/5' : 'border-transparent'}`}
+            {error ? (
+              <div className="max-w-xl mx-auto glass p-8 rounded-3xl text-center border-red-500/20">
+                <IconAlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                <h3 className="text-xl font-bold font-arabic mb-2">تعذر التحميل</h3>
+                <p className="text-gray-400 font-arabic mb-6">{error}</p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="px-6 py-2 rounded-xl bg-primary text-white font-arabic font-bold"
                 >
-                  <div className="flex gap-6 items-start flex-row-reverse">
-                    <span className={`w-8 h-8 shrink-0 flex items-center justify-center rounded-lg text-xs font-bold transition-all ${selectedVerse?.number === verse.number ? 'bg-primary text-white' : 'bg-white/5 text-gray-500 group-hover:bg-primary/20 group-hover:text-primary'}`}>
-                      {verse.numberInSurah}
-                    </span>
-                    <p className={`flex-1 text-2xl md:text-3xl font-arabic leading-[2] text-right antialiased transition-colors ${selectedVerse?.number === verse.number ? 'text-white' : 'text-gray-300 group-hover:text-white'}`}>
-                      {verse.text}
-                    </p>
+                  إعادة المحاولة
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="glass p-6 rounded-2xl mb-8 flex flex-wrap items-center justify-between gap-4">
+                  <div className="text-right">
+                    {isLoading ? (
+                      <div className="space-y-2">
+                        <div className="h-8 w-32 bg-white/5 animate-pulse rounded-lg"></div>
+                        <div className="h-4 w-24 bg-white/5 animate-pulse rounded-lg"></div>
+                      </div>
+                    ) : (
+                      <>
+                        <h2 className="text-3xl font-bold font-arabic text-primary">{surah?.name}</h2>
+                        <p className="text-gray-500 text-sm font-arabic">{surah?.englishNameTranslation} • {surah?.numberOfAyahs} آية</p>
+                      </>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <ReciterSelect
+                      reciters={reciters || []}
+                      selectedReciter={selectedReciter}
+                      onReciterChange={setSelectedReciter}
+                    />
                   </div>
                 </div>
-              ))}
-              {(!verses || verses.length === 0) && Array(15).fill(0).map((_, i) => (
-                <div key={i} className="h-24 glass rounded-xl animate-pulse"></div>
-              ))}
-            </div>
+
+                <div className="grid gap-4 max-w-5xl mx-auto">
+                  {verses?.map((verse) => (
+                    <div
+                      key={verse.number}
+                      onClick={() => handleVerseClick(verse)}
+                      className={`verse-card group relative ${selectedVerse?.number === verse.number ? 'bg-primary/10 border-primary ring-1 ring-primary/20 shadow-lg shadow-primary/5' : 'border-transparent'}`}
+                    >
+                      <div className="flex gap-6 items-start flex-row-reverse">
+                        <span className={`w-8 h-8 shrink-0 flex items-center justify-center rounded-lg text-xs font-bold transition-all ${selectedVerse?.number === verse.number ? 'bg-primary text-white' : 'bg-white/5 text-gray-500 group-hover:bg-primary/20 group-hover:text-primary'}`}>
+                          {verse.numberInSurah}
+                        </span>
+                        <p className={`flex-1 text-2xl md:text-3xl font-arabic leading-[2] text-right antialiased transition-colors ${selectedVerse?.number === verse.number ? 'text-white' : 'text-gray-300 group-hover:text-white'}`}>
+                          {verse.text}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                  {(isLoading || verses.length === 0) && !error && Array(10).fill(0).map((_, i) => (
+                    <div key={i} className="h-24 glass rounded-xl animate-pulse"></div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -120,7 +161,6 @@ export default function SurahPage({ params }: SurahPageProps) {
         >
           {selectedVerse && (
             <div className="h-full flex flex-col bg-dark/95 backdrop-blur-3xl">
-              {/* Sidebar Header */}
               <div className="p-6 border-b border-white/5 flex items-center justify-between flex-row-reverse">
                 <div className="flex items-center gap-3 flex-row-reverse">
                   <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
@@ -133,20 +173,17 @@ export default function SurahPage({ params }: SurahPageProps) {
                 </div>
                 <button
                   onClick={() => setSelectedVerse(null)}
-                  className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 transition-all"
+                  className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 transition-all font-arabic"
                 >
                   <IconX className="w-5 h-5" />
                 </button>
               </div>
 
-              {/* Sidebar Content */}
               <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8">
-                {/* Verse Display in Sidebar */}
                 <div className="p-6 rounded-2xl bg-primary/5 border border-primary/10">
                   <p className="text-2xl font-arabic leading-[2.2] text-light text-center">{selectedVerse.text}</p>
                 </div>
 
-                {/* Tafsir Select Tabs */}
                 <div className="space-y-4">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-widest block text-right font-arabic">اختر المفسر:</label>
                   <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar flex-row-reverse">
@@ -155,21 +192,17 @@ export default function SurahPage({ params }: SurahPageProps) {
                         key={idx}
                         onClick={() => setSelectedTafsirIdx(idx)}
                         className={`px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 font-arabic ${selectedTafsirIdx === idx
-                          ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                          : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                            ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                            : 'bg-white/5 text-gray-400 hover:bg-white/10'
                           }`}
                       >
                         <IconUser className="w-4 h-4" />
                         {t.author}
                       </button>
                     ))}
-                    {isLoadingTafsir && Array(2).fill(0).map((_, i) => (
-                      <div key={i} className="h-10 w-24 bg-white/5 rounded-xl animate-pulse"></div>
-                    ))}
                   </div>
                 </div>
 
-                {/* Content */}
                 <div className="space-y-4">
                   <h4 className="text-primary font-bold flex items-center gap-2 text-right font-arabic flex-row-reverse">
                     <div className="w-1 h-4 bg-primary rounded-full"></div>
@@ -190,7 +223,6 @@ export default function SurahPage({ params }: SurahPageProps) {
                 </div>
               </div>
 
-              {/* Sidebar Footer */}
               <div className="p-6 border-t border-white/5 flex gap-4">
                 {selectedVerse.audio && (
                   <button

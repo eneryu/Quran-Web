@@ -19,6 +19,7 @@ export interface Verse {
   numberInSurah: number;
   juz: number;
   page: number;
+  audio?: string;
 }
 
 export interface Reciter {
@@ -55,23 +56,6 @@ export interface Hadith {
   bookSlug: string;
 }
 
-// QURAN FUNCTIONS - Using alquran.cloud for Arabic metadata
-export async function getSurahs(): Promise<Surah[]> {
-  const response = await axios.get(`${QURAN_API}/surah`);
-  return response.data.data;
-}
-
-export async function getSurah(number: number): Promise<Surah & { verses: Verse[] }> {
-  // Fetch Arabic text
-  const response = await axios.get(`${QURAN_API}/surah/${number}`);
-  return response.data.data;
-}
-
-export async function getSurahWithAudio(number: number, edition: string): Promise<Surah & { verses: (Verse & { audio: string })[] }> {
-  const response = await axios.get(`${QURAN_API}/surah/${number}/${edition}`);
-  return response.data.data;
-}
-
 const reciterNamesAr: Record<string, string> = {
   'ar.alafasy': 'مشاري راشد العفاسي',
   'ar.abdurrahmaansudais': 'عبد الرحمن السديس',
@@ -87,36 +71,79 @@ const reciterNamesAr: Record<string, string> = {
   'ar.hudhaify': 'علي بن عبد الرحمن الحذيفي'
 };
 
-export async function getReciters(): Promise<Reciter[]> {
-  const response = await axios.get(`${QURAN_API}/edition/format/audio`);
-  return response.data.data.map((r: any) => ({
-    ...r,
-    name: reciterNamesAr[r.identifier] || r.name
-  }));
+// QURAN FUNCTIONS
+export async function getSurahs(): Promise<Surah[]> {
+  try {
+    const response = await axios.get(`${QURAN_API}/surah`);
+    return response.data.data || [];
+  } catch (error) {
+    console.error('Error fetching surahs:', error);
+    return [];
+  }
 }
 
-export async function getRecitation(identifier: string, surah: number): Promise<string> {
-  const response = await axios.get(`${QURAN_API}/surah/${surah}/${identifier}`);
-  return response.data.data;
+export async function getFullSurahData(number: number, edition: string = 'ar.alafasy') {
+  try {
+    // Fetch Arabic text and Audio edition in one call
+    // Note: quran-simple is very fast and reliable for text
+    const response = await axios.get(`${QURAN_API}/surah/${number}/editions/quran-simple,${edition}`);
+    const [textEdition, audioEdition] = response.data.data;
+
+    return {
+      metadata: {
+        number: textEdition.number,
+        name: textEdition.name,
+        englishName: textEdition.englishName,
+        englishNameTranslation: textEdition.englishNameTranslation,
+        numberOfAyahs: textEdition.numberOfAyahs,
+        revelationType: textEdition.revelationType,
+      },
+      verses: textEdition.verses.map((v: any, i: number) => ({
+        ...v,
+        audio: audioEdition.verses[i].audio
+      }))
+    };
+  } catch (error) {
+    console.error('Error fetching full surah data:', error);
+    throw error;
+  }
+}
+
+export async function getReciters(): Promise<Reciter[]> {
+  try {
+    const response = await axios.get(`${QURAN_API}/edition/format/audio`);
+    const data = response.data.data || [];
+    return data.map((r: any) => ({
+      ...r,
+      name: reciterNamesAr[r.identifier] || r.name
+    }));
+  } catch (error) {
+    console.error('Error fetching reciters:', error);
+    return [];
+  }
 }
 
 export async function getTafsirs(surah: number, ayah: number): Promise<Tafsir[]> {
-  // Use Al-Muyassar (Arabic) and Al-Jalalayn (Arabic)
-  const [muyassar, jalalayn] = await Promise.all([
-    axios.get(`${QURAN_API}/ayah/${surah}:${ayah}/ar.muyassar`),
-    axios.get(`${QURAN_API}/ayah/${surah}:${ayah}/ar.jalalayn`)
-  ]);
+  try {
+    const [muyassar, jalalayn] = await Promise.all([
+      axios.get(`${QURAN_API}/ayah/${surah}:${ayah}/ar.muyassar`),
+      axios.get(`${QURAN_API}/ayah/${surah}:${ayah}/ar.jalalayn`)
+    ]);
 
-  return [
-    {
-      author: 'التفسير الميسر',
-      content: muyassar.data.data.text
-    },
-    {
-      author: 'تفسير الجلالين',
-      content: jalalayn.data.data.text
-    }
-  ];
+    return [
+      {
+        author: 'التفسير الميسر',
+        content: muyassar.data.data.text
+      },
+      {
+        author: 'تفسير الجلالين',
+        content: jalalayn.data.data.text
+      }
+    ];
+  } catch (error) {
+    console.error('Error fetching tafsirs:', error);
+    return [{ author: 'خطأ', content: 'تعذر تحميل التفسير حالياً.' }];
+  }
 }
 
 // HADITH FUNCTIONS
