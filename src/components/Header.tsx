@@ -11,9 +11,6 @@ export function Header() {
         <div className="flex items-center justify-between flex-row-reverse" dir="rtl">
           <div className="flex items-center gap-4 flex-row-reverse">
             <Link href="/" className="flex items-center gap-3 group transition-transform hover:scale-105 flex-row-reverse">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center shadow-lg shadow-primary/20 group-hover:shadow-primary/40 transition-all duration-300">
-                <span className="text-white text-xl font-bold">Q</span>
-              </div>
               <h1 className="text-xl md:text-2xl font-bold gradient-text tracking-tight font-arabic">القرآن الكريم</h1>
             </Link>
             <div className="hidden lg:flex items-center px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-[10px] font-bold text-accent uppercase tracking-tighter shadow-sm animate-pulse font-arabic">

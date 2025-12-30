@@ -4,7 +4,7 @@ import React from 'react'
 import { Header } from '@/components/Header'
 import { getHadithBooks, getHadithChapters, getHadiths, searchHadiths } from '@/lib/api'
 import type { HadithBook, HadithChapter, Hadith } from '@/lib/api'
-import { IconSearch, IconChevronLeft, IconBooks, IconX, IconInfoCircle, IconShare } from '@tabler/icons-react'
+import { IconSearch, IconChevronRight, IconBooks, IconX, IconInfoCircle, IconShare } from '@tabler/icons-react'
 
 // Arabic book name mappings
 const bookNameAr: Record<string, string> = {
@@ -77,14 +77,13 @@ export default function HadithPage() {
     }
 
     return (
-        <div className="flex flex-col h-screen overflow-hidden bg-dark">
+        <div className="flex flex-col h-screen overflow-hidden bg-dark" dir="rtl">
             <Header />
 
             <div className="flex-1 flex overflow-hidden">
                 {/* Main Content Area */}
                 <div
                     className={`flex-1 overflow-y-auto custom-scrollbar transition-all duration-500 ${selectedHadith ? 'lg:w-3/5' : 'w-full'}`}
-                    dir="rtl"
                 >
                     <div className="container mx-auto px-4 py-8">
                         <div className="text-center mb-8">
@@ -93,7 +92,7 @@ export default function HadithPage() {
                         </div>
 
                         {/* Search Bar */}
-                        <form onSubmit={handleSearch} className="max-w-2xl mx-auto mb-8 group" dir="rtl">
+                        <form onSubmit={handleSearch} className="max-w-2xl mx-auto mb-8 group">
                             <div className="relative">
                                 <input
                                     type="text"
@@ -109,7 +108,7 @@ export default function HadithPage() {
                         </form>
 
                         {/* Breadcrumbs */}
-                        <div className="flex flex-row-reverse items-center gap-2 mb-6 text-xs overflow-x-auto pb-2 no-scrollbar" dir="rtl">
+                        <div className="flex items-center gap-2 mb-6 text-xs overflow-x-auto pb-2 no-scrollbar">
                             <button
                                 onClick={() => { setSelectedBook(null); setSelectedChapter(null); setHadiths([]); setSelectedHadith(null); }}
                                 className={`px-3 py-1.5 rounded-lg glass border-white/5 whitespace-nowrap font-arabic ${!selectedBook ? 'text-primary' : 'text-gray-400'}`}
@@ -118,7 +117,7 @@ export default function HadithPage() {
                             </button>
                             {selectedBook && (
                                 <>
-                                    <IconChevronLeft className="w-3 h-3 text-gray-600 rotate-180" />
+                                    <IconChevronRight className="w-3 h-3 text-gray-600" />
                                     <button
                                         onClick={() => { setSelectedChapter(null); setHadiths([]); setSelectedHadith(null); }}
                                         className={`px-3 py-1.5 rounded-lg glass border-white/5 whitespace-nowrap font-arabic ${selectedBook && !selectedChapter ? 'text-primary' : 'text-gray-400'}`}
@@ -129,7 +128,7 @@ export default function HadithPage() {
                             )}
                             {selectedChapter && (
                                 <>
-                                    <IconChevronLeft className="w-3 h-3 text-gray-600 rotate-180" />
+                                    <IconChevronRight className="w-3 h-3 text-gray-600" />
                                     <span className="px-3 py-1.5 rounded-lg glass border-primary/20 text-primary whitespace-nowrap font-arabic">
                                         {selectedChapter.chapterArabic}
                                     </span>
@@ -147,7 +146,7 @@ export default function HadithPage() {
                                             onClick={() => handleBookSelect(book)}
                                             className="glass p-5 rounded-2xl text-right group hover:border-primary/40 transition-all active:scale-[0.98]"
                                         >
-                                            <div className="flex items-center gap-4 mb-3 flex-row-reverse">
+                                            <div className="flex items-center gap-4 mb-3">
                                                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all duration-300">
                                                     <IconBooks className="w-5 h-5" />
                                                 </div>
@@ -155,7 +154,7 @@ export default function HadithPage() {
                                                     {bookNameAr[book.bookSlug] || book.bookName}
                                                 </h3>
                                             </div>
-                                            <div className="flex justify-between flex-row-reverse text-[11px] text-gray-500 border-t border-white/5 pt-3 font-arabic">
+                                            <div className="flex justify-between text-[11px] text-gray-500 border-t border-white/5 pt-3 font-arabic">
                                                 <span>{book.hadiths_count} حديث</span>
                                                 <span>{book.chapters_count} باب</span>
                                             </div>
@@ -173,13 +172,13 @@ export default function HadithPage() {
                                         <button
                                             key={chapter.chapterNumber}
                                             onClick={() => handleChapterSelect(chapter)}
-                                            className="glass p-5 rounded-xl flex items-center justify-between hover:border-primary/40 transition-all group active:scale-[0.99] flex-row-reverse text-right"
+                                            className="glass p-5 rounded-xl flex items-center justify-between hover:border-primary/40 transition-all group active:scale-[0.99] text-right"
                                         >
-                                            <div className="flex items-center gap-5 flex-row-reverse">
+                                            <div className="flex items-center gap-5">
                                                 <span className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">{chapter.chapterNumber}</span>
                                                 <h4 className="font-bold font-arabic text-light group-hover:text-primary transition-colors">{chapter.chapterArabic}</h4>
                                             </div>
-                                            <IconChevronLeft className="w-4 h-4 text-gray-600 rotate-180" />
+                                            <IconChevronRight className="w-4 h-4 text-gray-600" />
                                         </button>
                                     ))}
                                     {loading.chapters && Array(10).fill(0).map((_, i) => (
@@ -196,7 +195,7 @@ export default function HadithPage() {
                                             onClick={() => setSelectedHadith(hadith)}
                                             className={`verse-card group relative ${selectedHadith?.id === hadith.id ? 'bg-primary/10 border-primary shadow-lg shadow-primary/5' : 'border-transparent'}`}
                                         >
-                                            <div className="flex gap-5 items-start flex-row-reverse">
+                                            <div className="flex gap-5 items-start">
                                                 <span className={`w-8 h-8 shrink-0 flex items-center justify-center rounded-lg text-[10px] font-bold transition-all ${selectedHadith?.id === hadith.id ? 'bg-primary text-white' : 'bg-white/5 text-gray-500'}`}>
                                                     {hadith.hadithNumber}
                                                 </span>
@@ -215,17 +214,16 @@ export default function HadithPage() {
                     </div>
                 </div>
 
-                {/* Sidebar: Details */}
+                {/* Sidebar: Details - ARABIC ONLY */}
                 <aside
-                    className={`fixed lg:relative top-0 right-0 h-full lg:h-auto z-[60] lg:z-auto transition-all duration-500 ease-in-out border-r border-white/5 glass shadow-2xl overflow-hidden ${selectedHadith ? 'w-full lg:w-[40%] visible opacity-100 translate-x-0' : 'w-0 invisible opacity-0 translate-x-full'
+                    className={`fixed lg:relative top-0 left-0 h-full lg:h-auto z-[60] lg:z-auto transition-all duration-500 ease-in-out border-l border-white/5 glass shadow-2xl overflow-hidden ${selectedHadith ? 'w-full lg:w-[40%] visible opacity-100 translate-x-0' : 'w-0 invisible opacity-0 -translate-x-full'
                         }`}
-                    dir="rtl"
                 >
                     {selectedHadith && (
                         <div className="h-full flex flex-col bg-dark/95 backdrop-blur-3xl">
                             {/* Header */}
-                            <div className="p-6 border-b border-white/5 flex items-center justify-between flex-row-reverse">
-                                <div className="flex items-center gap-3 flex-row-reverse">
+                            <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center text-accent">
                                         <IconInfoCircle className="w-5 h-5" />
                                     </div>
@@ -242,32 +240,34 @@ export default function HadithPage() {
                                 </button>
                             </div>
 
-                            {/* Content */}
-                            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8">
+                            {/* Content - ARABIC ONLY */}
+                            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
                                 {/* Arabic Text - Primary */}
                                 <div className="p-6 rounded-2xl bg-primary/5 border border-primary/10">
-                                    <h4 className="text-primary font-bold mb-4 flex items-center flex-row-reverse gap-2 text-right font-arabic">
+                                    <h4 className="text-primary font-bold mb-4 flex items-center gap-2 text-right font-arabic">
                                         <div className="w-1 h-4 bg-primary rounded-full"></div>
-                                        نص الحديث:
+                                        نص الحديث الشريف:
                                     </h4>
-                                    <p className="text-2xl font-arabic leading-[2] text-light text-center">{selectedHadith.hadithArabic}</p>
+                                    <p className="text-2xl font-arabic leading-[2] text-light text-right">{selectedHadith.hadithArabic}</p>
                                 </div>
 
-                                <div className="grid gap-4">
-                                    <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex flex-row-reverse items-center justify-between font-arabic">
-                                        <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">درجة الحديث:</span>
-                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${selectedHadith.status === 'Sahih' ? 'bg-green-500/10 text-green-500' : 'bg-orange-500/10 text-orange-500'}`}>
-                                            {statusAr[selectedHadith.status] || selectedHadith.status}
-                                        </span>
-                                    </div>
+                                {/* Status Badge */}
+                                <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between font-arabic">
+                                    <span className="text-sm font-bold text-gray-400">درجة الحديث:</span>
+                                    <span className={`px-3 py-1 rounded-lg text-sm font-bold ${selectedHadith.status === 'Sahih' ? 'bg-green-500/10 text-green-400' : 'bg-orange-500/10 text-orange-400'}`}>
+                                        {statusAr[selectedHadith.status] || selectedHadith.status}
+                                    </span>
+                                </div>
 
-                                    {/* English - Secondary and Dimmed */}
-                                    <div className="p-5 rounded-xl bg-white/5 border border-white/10 space-y-3 opacity-30 hover:opacity-100 transition-opacity">
-                                        <h5 className="text-gray-500 font-bold text-xs flex items-center gap-2 font-arabic flex-row-reverse">
-                                            <div className="w-1 h-3 bg-gray-500 rounded-full"></div>
-                                            الترجمة الإنجليزية (للمراجعة)
-                                        </h5>
-                                        <p className="text-gray-500 leading-relaxed text-sm italic">{selectedHadith.hadithEnglish}</p>
+                                {/* Book & Chapter Info */}
+                                <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3 font-arabic">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm text-gray-500">الكتاب:</span>
+                                        <span className="text-sm text-gray-300">{bookNameAr[selectedHadith.bookSlug] || selectedHadith.bookSlug}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm text-gray-500">رقم الحديث:</span>
+                                        <span className="text-sm text-gray-300">{selectedHadith.hadithNumber}</span>
                                     </div>
                                 </div>
                             </div>

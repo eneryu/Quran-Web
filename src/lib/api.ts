@@ -64,14 +64,11 @@ const reciterNamesAr: Record<string, string> = {
   '5': 'هاني الرفاعي'
 };
 
-// Arabic tafsir sources from spa5k/tafsir_api
 const TAFSIR_SOURCES = [
   { slug: 'ar-tafsir-muyassar', name: 'التفسير الميسر' },
-  { slug: 'ar-tafsir-ibn-kathir', name: 'تفسير ابن كثير' },
-  { slug: 'ar-tafsser-al-tabari', name: 'تفسير الطبري' }
+  { slug: 'ar-tafsir-ibn-kathir', name: 'تفسير ابن كثير' }
 ];
 
-// QURAN FUNCTIONS
 export async function getSurahs(): Promise<Surah[]> {
   try {
     // Use the full Arabic dump endpoint
